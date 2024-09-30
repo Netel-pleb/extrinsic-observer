@@ -95,7 +95,7 @@ def check_success(events, idx):
 
 def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp):
     fields = []
-    if extrinsic_success:
+    if extrinsic_success == True:
         old_coldkey_field = {
                 "name": "\n\n🔑 **OLD COLDKEY** \n\n\n",
                 "value": "",
@@ -128,11 +128,27 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
         time_stamp_field["value"] += f"{time_stamp}\n\n"
         fields.append(time_stamp_field)
     else:
-        fields.append({
+        failed_extrinsic_field = {
             "name": "🔴 **Extrinsic Failed** 🔴",
             "value": "The extrinsic failed to execute.",
             "inline": False
-        })
+        }
+        fields.append(failed_extrinsic_field)
+        execution_block_field = {
+                "name": "\n\n🧱 **EXECUTION BLOCK** \n\n\n",
+                "value": "",
+                "inline": False
+        }
+        execution_block_field["value"] += f"{execution_block}\n\n"
+        fields.append(execution_block_field)
+
+        time_stamp_field = {
+                "name": "\n\n🕙  **TIME STAMP** \n\n\n",
+                "value": "",
+                "inline": False
+        }
+        time_stamp_field["value"] += f"{time_stamp}\n\n"
+        fields.append(time_stamp_field)
         
     embed = {
         "title": "🌟 __ NEW SCHEDULE_SWAP_COLDKEY DETECTED __ 🌟",
@@ -163,6 +179,7 @@ def find_swap_coldkey(block_number):
 def observer_block():
     
     extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp = find_swap_coldkey(3941423)
+    extrinsic_success = False
     swap_coldkey_report = report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp)
     # network_dissolve_report = report_network_dissolve()
     return swap_coldkey_report
