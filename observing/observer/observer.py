@@ -27,6 +27,7 @@ def get_block_data(substrate, block_number):
     tuple: Contains the block data, events, and block hash.
     """
     block_hash = substrate.get_block_hash(block_id=block_number)
+    print(block_hash)
     block = substrate.get_block(block_hash=block_hash)
     events = substrate.get_events(block_hash=block_hash)
     return block, events
@@ -96,7 +97,7 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
     fields = []
     if extrinsic_success:
         old_coldkey_field = {
-                "name": "\n\n🌿 **OLD HOTKEY** 🌿\n\n\n",
+                "name": "\n\n🔑 **OLD COLDKEY** \n\n\n",
                 "value": "",
                 "inline": False
         }
@@ -104,7 +105,7 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
         fields.append(old_coldkey_field)
         
         new_coldkey_field = {
-                "name": "\n\n🌿 **NEW HOTKEY** 🌿\n\n\n",
+                "name": "\n\n🔑 **NEW COLDKEY** \n\n\n",
                 "value": "",
                 "inline": False
         }
@@ -112,19 +113,20 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
         fields.append(new_coldkey_field)
         
         execution_block_field = {
-                "name": "\n\n🌿 **EXECUTION BLOCK** 🌿\n\n\n",
+                "name": "\n\n🧱 **EXECUTION BLOCK** \n\n\n",
                 "value": "",
                 "inline": False
         }
         execution_block_field["value"] += f"{execution_block}\n\n"
         fields.append(execution_block_field)
-        
+
         time_stamp_field = {
-                "name": "\n\n🌿 **TIME STAMP** 🌿\n\n\n",
+                "name": "\n\n🕙  **TIME STAMP** \n\n\n",
                 "value": "",
                 "inline": False
         }
         time_stamp_field["value"] += f"{time_stamp}\n\n"
+        fields.append(time_stamp_field)
     else:
         fields.append({
             "name": "🔴 **Extrinsic Failed** 🔴",
@@ -138,6 +140,7 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
         "color": 642600,  # Hex color code in decimal
         "fields": fields,
     }
+    return embed
 
 def find_swap_coldkey(block_number):
     """
@@ -148,7 +151,7 @@ def find_swap_coldkey(block_number):
     old_coldkey, new_coldkey, execution_block = None, None, None
     substrate = setup_substrate_interface()
     block, events = get_block_data(substrate, block_number)
-    is_schedule_swap_coldkey = check_schedule_swap_coldkey(block['extrinsics'], events)
+    is_schedule_swap_coldkey = check_schedule_swap_coldkey(block['extrinsics'])
     if is_schedule_swap_coldkey:
         print("block contains Swap coldkey scheduled")
         time_stamp = extract_block_timestamp(block['extrinsics'])
