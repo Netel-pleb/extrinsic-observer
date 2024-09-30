@@ -1,21 +1,18 @@
-# This script initializes the main repository and repository family in the database,
-# and continuously runs a specified script at defined intervals.
-#
-# Functions:
-# - run_bot: Runs a specified Python script in a loop with a delay between executions.
-
 import subprocess
 import time
+import sched
 
-
-def run_bot(timestamp):
-    """Runs a specified script continuously with a delay specified by timestamp."""
-    while True:
-        subprocess.run(['python', 'run.py'])  # Replace 'run.py' with the actual filename if different
-        time.sleep(timestamp)  # Delay for the specified time in seconds
+def run_bot(scheduler, interval):
+    """Runs a specified script and reschedules itself to run again after the interval."""
+    start_time = time.time()
+    subprocess.run(['python', 'run.py'])  # Replace 'run.py' with the actual filename if different
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    next_run = max(0, interval - elapsed_time)
+    scheduler.enter(next_run, 1, run_bot, (scheduler, interval))
 
 if __name__ == "__main__":
-    start_time = time.time()
-    print(f"initializing started: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
-    timestamp = 120000  # Delay in seconds
-    run_bot(timestamp)
+    interval = 12  # Interval in seconds
+    scheduler = sched.scheduler(time.time, time.sleep)
+    scheduler.enter(0, 1, run_bot, (scheduler, interval))
+    scheduler.run()

@@ -93,9 +93,18 @@ def check_success(events, idx):
                 extrinsic_success = True
     return extrinsic_events, extrinsic_success
 
-def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp):
+def report_swap_coldkey(current_block_number, extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp):
     fields = []
     if extrinsic_success == True:
+        current_block_field = {
+            "name": "🧱 **CURRENT BLOCK** 🧱",
+            "value": "",
+            "inline": False
+        }
+        current_block_field["value"] += f"{current_block_number}\n\n"
+        fields.append(current_block_field)
+        
+        
         old_coldkey_field = {
                 "name": "\n\n🔑 **OLD COLDKEY** \n\n\n",
                 "value": "",
@@ -121,7 +130,7 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
         fields.append(execution_block_field)
 
         time_stamp_field = {
-                "name": "\n\n🕙  **TIME STAMP** \n\n\n",
+                "name": "\n\n🕙  **CURRENT BLOCK TIMESTAMP** \n\n\n",
                 "value": "",
                 "inline": False
         }
@@ -134,16 +143,17 @@ def report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_b
             "inline": False
         }
         fields.append(failed_extrinsic_field)
-        execution_block_field = {
-                "name": "\n\n🧱 **EXECUTION BLOCK** \n\n\n",
-                "value": "",
-                "inline": False
+        
+        current_block_field = {
+            "name": "🧱 **CURRENT BLOCK** 🧱",
+            "value": "",
+            "inline": False
         }
-        execution_block_field["value"] += f"{execution_block}\n\n"
-        fields.append(execution_block_field)
+        current_block_field["value"] += f"{current_block_number}\n\n"
+        fields.append(current_block_field)
 
         time_stamp_field = {
-                "name": "\n\n🕙  **TIME STAMP** \n\n\n",
+                "name": "\n\n🕙  **CURRENT BLOCK TIMESTAMP** \n\n\n",
                 "value": "",
                 "inline": False
         }
@@ -178,11 +188,15 @@ def find_swap_coldkey(block_number):
 
 def observer_block():
     
-    extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp = find_swap_coldkey(3941423)
-    extrinsic_success = False
-    swap_coldkey_report = report_swap_coldkey(extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp)
+    
+    current_block_number = bt.subtensor().get_current_block()
+    current_block_number = 3941423
+    extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp = find_swap_coldkey(current_block_number)
+    swap_coldkey_report = report_swap_coldkey(current_block_number, extrinsic_success, new_coldkey, old_coldkey, execution_block, time_stamp)
     # network_dissolve_report = report_network_dissolve()
     return swap_coldkey_report
     
 if __name__ == "__main__":
     observer_block()
+    
+    
