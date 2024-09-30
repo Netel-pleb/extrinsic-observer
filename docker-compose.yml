@@ -8,7 +8,5 @@ services:
     volumes:
       - .:/app
     environment:
-      - GIT_ACCESS_TOKEN=${GIT_ACCESS_TOKEN}
-      - MAIN_REPO=${MAIN_REPO}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - COLDKEY_SWAP_DISCORD_WEBHOOK_URL=${COLDKEY_SWAP_DISCORD_WEBHOOK_URL}
     command: ["python", "main.py"]
