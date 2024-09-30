@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    environment:
+      - GIT_ACCESS_TOKEN=${GIT_ACCESS_TOKEN}
+      - MAIN_REPO=${MAIN_REPO}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    command: ["python", "main.py"]
