@@ -98,7 +98,7 @@ def report_dissolve_subnet(current_block_number, time_stamp):
     fields.append(time_stamp_field)
         
     embed = {
-        "title": "🌟 __ NEW SCHEDULE_DESSOLVE_NETWORK DETECTED __ 🌟",
+        "title": "🌟 __ NEW SCHEDULE_NETWORK_DISSOLVE DETECTED __ 🌟",
         "description": "",
         "color": 642600,  # Hex color code in decimal
         "fields": fields,

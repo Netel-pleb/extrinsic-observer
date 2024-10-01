@@ -5,7 +5,7 @@ import requests
 import json
 
 def post_to_discord(embed, webhook_url):
-    print(webhook_url)
+    # print(webhook_url)
     if embed == None:
         return
     data = {
