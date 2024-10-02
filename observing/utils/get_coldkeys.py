@@ -2,7 +2,7 @@ import requests
 import sqlite3
 import os
 from substrateinterface.utils.ss58 import ss58_encode
-import time
+
 def convert_hex_to_ss58(hex_address):
     """
     Converts a hexadecimal address to an SS58 address.
@@ -67,7 +67,7 @@ def find_owner_coldkey():
         owner_coldkeys.append(convert_hex_to_ss58(owner['owner']))
         net_uids.append(owner['subnet_id'])
 
-    db_path = '../../DB/db.sqlite3'
+    db_path = 'DB/db.sqlite3'
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -86,6 +86,7 @@ def find_owner_coldkey():
         INSERT INTO owners (net_uid, owner_coldkey)
         VALUES (?, ?)
         ''', (net_uid, owner_coldkey))
+
     conn.commit()
     conn.close()
 
@@ -106,19 +107,15 @@ def find_validator_coldkey():
     validator_coldkeys = []
     validator_hotkeys = []
     validator_amounts = []
-    get_validator_names = []
+
     for validator in all_validators:
         amount = validator['amount']
         if int(amount) > 1000:
             validator_coldkeys.append(validator['cold_key']['ss58'])
             validator_hotkeys.append(validator['hot_key']['ss58'])
-            name = get_validator_name(validator['hot_key']['ss58'])
-            print(name)
-            get_validator_names.append(name)
             validator_amounts.append(amount)
-        # break
 
-    db_path = '../../DB/db.sqlite3'
+    db_path = 'DB/db.sqlite3'
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -129,51 +126,21 @@ def find_validator_coldkey():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cold_key TEXT,
         hot_key TEXT,
-        amount TEXT,
-        name TEXT
+        amount TEXT
     )
     ''')
-    print((validator_coldkeys, validator_hotkeys, validator_amounts, get_validator_names))
-    for cold_key, hot_key, amount, name in zip(validator_coldkeys, validator_hotkeys, validator_amounts, get_validator_names):
-        try:
-            print(f"Inserting: cold_key={cold_key}, hot_key={hot_key}, amount={amount}, name={name}")
-            cursor.execute('''
-            INSERT INTO validators (cold_key, hot_key, amount, name)
-            VALUES (?, ?, ?, ?)
-            ''', (cold_key, hot_key, amount, name))
-        except sqlite3.Error as e:
-            print(f"Error inserting data: {e}")
+
+    for cold_key, hot_key, amount in zip(validator_coldkeys, validator_hotkeys, validator_amounts):
+        cursor.execute('''
+        INSERT INTO validators (cold_key, hot_key, amount)
+        VALUES (?, ?, ?)
+        ''', (cold_key, hot_key, amount))
+
     conn.commit()
     conn.close()
+
     print("Validator coldkey data has been saved to the database.")
-
-
-def get_validator_name(hotkey):
-    url = f"https://api.taostats.io/api/v1/delegate/info?address={hotkey}"
-    headers = {
-        "accept": "application/json",
-        "Authorization": "V2SW2nSvQU4rmiVJjqFUXr0EimP8phUqD7cwGUf9bOy0jxssNv6jtG0E3KIdQmBk"
-    }
-
-    response = requests.get(url, headers=headers)
-    print(response.status_code)
-    if response.status_code == 429:  # Rate limit error
-        print("Rate limit exceeded. Retrying...")
-        time.sleep(10)  # Wait for 10 seconds before retrying
-        return get_validator_name(hotkey)  # Retry the request
-    
-    response = response.json()
-    if response["count"] == 1:
-        return response["delegates"][0]["name"]
-    else:
-        return None
-
-
-
-
 
 if __name__ == "__main__":
     find_owner_coldkey()
     find_validator_coldkey()
-    # name = get_validator_name("5Fq5v71D4LX8Db1xsmRSy6udQThcZ8sFDqxQFwnUZ1BuqY5A")
-    # print(name)

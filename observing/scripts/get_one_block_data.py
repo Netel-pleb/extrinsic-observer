@@ -6,6 +6,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from observing.bot.bot import post_to_discord
+import datetime
 def setup_substrate_interface():
     """
     Initializes and returns a SubstrateInterface object configured to connect to a specified WebSocket URL.
@@ -29,7 +30,6 @@ def get_block_data(substrate, block_number):
     tuple: Contains the block data, events, and block hash.
     """
     block_hash = substrate.get_block_hash(block_id=block_number)
-    print(block_hash)
     block = substrate.get_block(block_hash=block_hash)
     events = substrate.get_events(block_hash=block_hash)
     return block, events
@@ -114,6 +114,9 @@ def dissolve_subnet(substrate, block_number):
     execution_block, time_stamp = None, None
     
     block, events = get_block_data(substrate, block_number)
+    
+    print(block["extrinsics"])
+    exit()
     has_dissolve_subnet_idx= check_dissolve_subnet(block['extrinsics'])
     print (has_dissolve_subnet_idx)
     if has_dissolve_subnet_idx >= 0:
@@ -124,7 +127,10 @@ def dissolve_subnet(substrate, block_number):
 def observer_block():
     DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/1290411821072781372/fLDmDgtz-10ucE5oCBGm4kMj7RFBwXaq2u-7KG9A4p5573kJOlyb97SxXg6DKBP1PtMO"
     substrate = setup_substrate_interface()
-    block_number = 3877258
+    block_number = 3956804
+    time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("start time", time)
+    # block_number = bt.subtensor().get_current_block()
     dissolve_subnet(substrate, block_number)
 
 if __name__ == "__main__":
