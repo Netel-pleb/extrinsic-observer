@@ -13,3 +13,4 @@ def post_to_discord(embed, webhook_url):
     }
     response = requests.post(webhook_url, data=json.dumps(data), headers={"Content-Type": "application/json"})
     return response.status_code, response.text
+

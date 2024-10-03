@@ -3,13 +3,30 @@ from datetime import datetime
 from substrateinterface.base import SubstrateInterface
 import bittensor as bt
 import sqlite3
+import sentry_sdk
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+def init_sentry():
+    """
+    Initializes the Sentry SDK to enable error tracking.
+    """
+    SENTRY_SDK = os.getenv('SENTRY_SDK')
+    sentry_sdk.init(
+        dsn=SENTRY_SDK,
+        traces_sample_rate=1.0
+    )
+
 def setup_substrate_interface():
     """
     Initializes and returns a SubstrateInterface object configured to connect to a specified WebSocket URL.
     This interface will be used to interact with the blockchain.
     """
+    SUBTENSOR_ENDPOINT = os.getenv('SUBTENSOR_ENDPOINT')
     return SubstrateInterface(
-        url="wss://archive.chain.opentensor.ai:443/",
+        url=SUBTENSOR_ENDPOINT,
         ss58_format=42,
         use_remote_preset=True,
     )
@@ -21,6 +38,7 @@ def get_block_data(substrate, block_number):
     block_hash = substrate.get_block_hash(block_id=block_number)
     block = substrate.get_block(block_hash=block_hash)
     events = substrate.get_events(block_hash=block_hash)
+    
     return block, events
 
 def extract_block_timestamp(extrinsics):
@@ -40,10 +58,9 @@ def extract_block_timestamp(extrinsics):
                 
                 # Format the datetime to include UTC offset
                 utc_offset = dt_utc.strftime('%z')
-                formatted_offset = f'UTC{utc_offset[:3]}:{utc_offset[3:]}'
-                
+                formatted_offset = f'UTC{utc_offset[:3]}:{utc_offset[3:]}'              
                 return dt_utc.strftime(f'%Y-%m-%d %H:%M:%S ({formatted_offset})')
-
+            
     return None  # Return None if no valid timestamp is found
 
 def check_extrinsic(extrinsics, func_schedule_swap_coldkey, func_schedule_dissolve_subnet, func_vote, module_name):
@@ -63,6 +80,7 @@ def check_extrinsic(extrinsics, func_schedule_swap_coldkey, func_schedule_dissol
                     schedule_dissolve_network_idx = idx
                 elif call['call_function'] == func_vote:
                     vote_idx = idx
+    
     return schedule_swap_coldkey_idx, schedule_dissolve_network_idx, vote_idx
 
 def process_swap_extrinsics(extrinsic_events):
@@ -76,6 +94,7 @@ def process_swap_extrinsics(extrinsic_events):
             new_coldkey = event_value['attributes']['new_coldkey']
             execution_block = event_value['attributes']['execution_block']
             return old_coldkey, new_coldkey, execution_block
+    
     return None, None, None
 
 def process_dissolve_extrinsics(extrinsic_events):
@@ -89,6 +108,7 @@ def process_dissolve_extrinsics(extrinsic_events):
             owner_coldkey = event_value['attributes']['account']
             execution_block = event_value['attributes']['execution_block']
             return netuid, owner_coldkey, execution_block
+    
     return None, None, None
 
 def check_success(events, idx):
@@ -103,6 +123,7 @@ def check_success(events, idx):
             extrinsic_events.append(event)
             if event_value['event_id'] == 'ExtrinsicSuccess':
                 extrinsic_success = True
+    
     return extrinsic_events, extrinsic_success
 
 def generate_report(title, success, details, time_stamp):
@@ -114,7 +135,6 @@ def generate_report(title, success, details, time_stamp):
         "value": f"{details['current_block_number']}\n\n",
         "inline": False
     }]
-
     if success:
         for key, value in details.items():
             if key != 'current_block_number':
@@ -129,17 +149,16 @@ def generate_report(title, success, details, time_stamp):
             "value": "The extrinsic failed to execute.",
             "inline": False
         })
-
     fields.append({
         "name": "\n\n🕙  **CURRENT BLOCK TIMESTAMP** \n\n\n",
         "value": f"{time_stamp}\n\n",
         "inline": False
     })
-
+    
     return {
         "title": title,
         "description": "",
-        "color": 642600 if "COLDKEY" in title else 12910592,  # Different colors for different reports
+        "color": 16776960 if "COLDKEY" in title else 12910592,  # Different colors for different reports
         "fields": fields,
     }
     
@@ -152,7 +171,6 @@ def generate_vote_report(title, success, details, time_stamp):
         "value": f"{details['current_block_number']}\n\n",
         "inline": False
     }]
-
     for key, value in details.items():
         if key != 'current_block_number':
             fields.append({
@@ -172,24 +190,21 @@ def generate_vote_report(title, success, details, time_stamp):
             "value": "The extrinsic failed to execute.",
             "inline": False
         })
-
     fields.append({
         "name": "\n\n🕙  **CURRENT BLOCK TIMESTAMP** \n\n\n",
         "value": f"{time_stamp}\n\n",
         "inline": False
     })
-
+    
     return {
         "title": title,
         "description": "",
-        "color": 642600 if "COLDKEY" in title else 642600,  # Different colors for different reports
+        "color": 14776960 if "COLDKEY" in title else 14776960,  # Different colors for different reports
         "fields": fields,
     }
 
 def generate_dissolved_netword(title, details, time_stamp):
-    
     fields = []
-    
     for key, value in details.items():
 
         fields.append({
@@ -197,17 +212,16 @@ def generate_dissolved_netword(title, details, time_stamp):
             "value": f"{value}\n\n",
             "inline": False
         })  
-            
     fields.append({
         "name": "\n\n🕙  **CURRENT BLOCK TIMESTAMP** \n\n\n",
         "value": f"{time_stamp}\n\n",
         "inline": False
     })
-        
+    
     return {
         "title": title,
         "description": "",
-        "color": 12910592 if "COLDKEY" in title else 12910592,  # Different colors for different reports
+        "color": 16273827 if "COLDKEY" in title else 16273827,  # Different colors for different reports
         "fields": fields,
     }
 
@@ -223,7 +237,7 @@ def get_validator_name(coldkey, hotkey = None):
            otherwise None, and status is 1 if the coldkey exists, otherwise 0.
     """
     db_path = 'DB/db.sqlite3'  # Update this path to the actual location of your database
-
+    
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -255,15 +269,14 @@ def get_owner_name(coldkey):
     Returns:
     tuple: (name, status) where name is the value of the owner if found, otherwise None, and status is 1 if the coldkey exists, otherwise 0.
     """
-    db_path = 'DB/db.sqlite3'  # Update this path to the actual location of your database
-    print("in here")
+    db_path = 'DB/db.sqlite3'  
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         cursor.execute('SELECT net_uid FROM owners WHERE owner_coldkey = ?', (coldkey,))
         result = cursor.fetchone()
-        print(result)
+        # print(result)
         if result:
             return result[0]
         else:
@@ -275,7 +288,6 @@ def get_owner_name(coldkey):
         if conn:
             conn.close()
     
-
 def process_vote(extrinsic):
     """
     Extracts specific parameters from the extrinsic data.
@@ -304,16 +316,17 @@ def check_events(events, swap_event, dissolve_event):
     """
     Checks for specific events in the list of events.
     """
-    swap_coldkey_idx, dissolve_network_idx = None, None
+    swapped_old_coldkey, swapped_new_coldkey, dissolved_network_uid = None, None, None
     for idx, event in enumerate(events):
         event_value = getattr(event, 'value', None)
         if event_value and event_value.get('event_id') == swap_event:
-            swap_coldkey_idx = idx
+            swapped_old_coldkey = event_value['attributes'].get('old_coldkey')
+            swapped_new_coldkey = event_value['attributes'].get('new_coldkey')
             
         elif event_value and event_value.get('event_id') == dissolve_event:
-            dissolve_network_idx = event_value.get('attributes')
+            dissolved_network_uid = event_value.get('attributes')
 
-    return swap_coldkey_idx, dissolve_network_idx
+    return swapped_old_coldkey, swapped_new_coldkey, dissolved_network_uid
 
 def find_dissolve_subnet( block, events):
     """
@@ -331,7 +344,6 @@ def find_swap_coldkey(block, events):
     """
     Finds and processes a scheduled coldkey swap in the given block number.
     """
-    
     idx = check_extrinsic(block['extrinsics'], 'schedule_swap_coldkey', 'SubtensorModule')
     if idx >= 0:
         time_stamp = extract_block_timestamp(block['extrinsics'])
@@ -346,17 +358,25 @@ def observer_block():
     """
     substrate = setup_substrate_interface()
     current_block_number = bt.subtensor().get_current_block()
-    current_block_number = 3941423  # schdule swap coldkey
+    
+    #block numbers for testing
+    # current_block_number = 3941423  # schdule swap coldkey
     # current_block_number = 3877258  # schedule dissolve network
-    # current_block_number = 3956804   # vote
+    # current_block_number = 3956804  # vote
     # current_block_number = 3913258  # dissolved network
+    current_block_number = 3948498  # coldkey swapped
+    
     block, events = get_block_data(substrate, current_block_number)
-    schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report, dissloved_subnet_resport = None, None, None, None
+    schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report, dissloved_subnet_resport, swapped_coldkey_report = None, None, None, None, None
+    should_db_update = False
     
     # Check for extrinsics related to scheduled coldkey swap and network dissolve
     schedule_swap_coldkey_idx, schedule_dissolve_network_idx, vote_idx = check_extrinsic(block['extrinsics'], 'schedule_swap_coldkey', 'schedule_dissolve_network', 'vote', 'SubtensorModule')
+    # Check for events related to coldkey swap and network dissolve
+    swapped_old_coldkey, swapped_new_coldkey, dissolved_network_uid = check_events(events, 'ColdkeySwapped', 'NetworkRemoved')
     
-    #check for scheduled coldkey swap
+    
+    # Check for scheduled coldkey swap
     if schedule_swap_coldkey_idx >= 0:
         time_stamp = extract_block_timestamp(block['extrinsics'])
         extrinsic_events, extrinsic_success = check_success(events, schedule_swap_coldkey_idx)
@@ -370,13 +390,11 @@ def observer_block():
                 old_coldkey = old_coldkey + f"\n(Validator : [{validator_name}]({link}))"
             else: 
                 old_coldkey = old_coldkey + f"\n(Validator : [no name]({link}))"
-        
         netuid = get_owner_name(original_coldkey)
         if netuid:
             print("netuid", netuid)
             link = f"https://taostats.io/subnets/{netuid}/metagraph"
-            old_coldkey = f"{old_coldkey}\n([subnet{netuid} owner]({link}))"
-        
+            old_coldkey = f"{old_coldkey}\n([subnet{netuid} owner]({link}))" 
         details = {
             "current_block_number": current_block_number,
             "old_coldkey": old_coldkey,
@@ -384,7 +402,8 @@ def observer_block():
             "execution_block": execution_block
         }
         schedule_swap_coldkey_report = generate_report("📅 __ NEW SCHEDULE_SWAP_COLDKEY DETECTED __ 📅", extrinsic_success, details, time_stamp)
-        
+
+
     # Check for scheduled network dissolve
     if schedule_dissolve_network_idx >= 0:
         time_stamp = extract_block_timestamp(block['extrinsics'])
@@ -400,7 +419,8 @@ def observer_block():
         }
         schedule_dissolve_subnet_report = generate_report("⏳ __SCHEDULE_NETWORK_DISSOLVE DETECTED__ ⏳", extrinsic_success, details, time_stamp)
 
-    #check for vote
+
+    # Check for vote
     if vote_idx >= 0:
         time_stamp = extract_block_timestamp(block['extrinsics'])
         extrinsic_events, extrinsic_success = check_success(events, vote_idx)
@@ -421,15 +441,43 @@ def observer_block():
             "approve": approve,
         }
         vote_report = generate_vote_report("🗳️ __ NEW VOTE DETECTED __ 🗳️", extrinsic_success, details, time_stamp)
-        
-    swap_coldkey_idx, dissolve_network_idx = check_events(events, 'ColdkeySwapped', 'NetworkRemoved')
     
-    if dissolve_network_idx:
+    
+    # Check for coldkey swapped
+    if swapped_old_coldkey:
+        
+        swapped_old_coldkey = "5Cyfk5Jjee6uCafjZyUUjtKd7Q4qh1yJ48Ts7bkT9xXaDqe1"
+        time_stamp = extract_block_timestamp(block['extrinsics'])
+        validator_name, validator_hotkey, check_validator = get_validator_name(swapped_old_coldkey)
+        link = f"https://taostats.io/validators/{validator_hotkey}"
+        original_coldkey = swapped_old_coldkey
+        if check_validator:  
+            if validator_name:
+                swapped_old_coldkey = swapped_old_coldkey + f"\n(Validator : [{validator_name}]({link}))"
+            else: 
+                swapped_old_coldkey = swapped_old_coldkey + f"\n(Validator : [no name]({link}))" 
+        netuid = get_owner_name(original_coldkey)
+        if netuid:
+            print("netuid", netuid)
+            link = f"https://taostats.io/subnets/{netuid}/metagraph"
+            swapped_old_coldkey = f"{swapped_old_coldkey}\n([subnet{netuid} owner]({link}))"       
+        details = {
+            "current_block_number": current_block_number,
+            "old_coldkey": swapped_old_coldkey,
+            "new_coldkey": swapped_new_coldkey,
+        }
+        swapped_coldkey_report = generate_report(" __😍 COLDKEY SWAPPED 😍__ ", True, details, time_stamp)
+        should_db_update = True
+    
+    #Check for dissolved network
+    if dissolved_network_uid:
         time_stamp = extract_block_timestamp(block['extrinsics'])
         details = {
             "current_block_number": current_block_number,
-            "netuid": dissolve_network_idx,
+            "netuid": dissolved_network_uid,
         }
         dissloved_subnet_resport = generate_dissolved_netword("😯 __ NETWORK DESSOLVED __ 😯", details, time_stamp)
+        should_db_update = True
 
-    return schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report, dissloved_subnet_resport
+    return schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report, dissloved_subnet_resport, swapped_coldkey_report, should_db_update
+

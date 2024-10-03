@@ -9,4 +9,7 @@ services:
       - .:/app
     environment:
       - COLDKEY_SWAP_DISCORD_WEBHOOK_URL=${COLDKEY_SWAP_DISCORD_WEBHOOK_URL}
+      - DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL=${DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL}
+      - TAOSTATS_API_KEY=${TAOSTATS_API_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
     command: ["python", "main.py"]
