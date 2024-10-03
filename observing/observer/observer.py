@@ -175,6 +175,31 @@ def generate_vote_report(title, success, details, time_stamp):
         "fields": fields,
     }
 
+def generate_dissolved_netword(title, details, time_stamp):
+    
+    fields = []
+    
+    for key, value in details.items():
+
+        fields.append({
+            "name": f"\n\n🔑 **{key.upper()}** \n\n\n",
+            "value": f"{value}\n\n",
+            "inline": False
+        })  
+            
+    fields.append({
+        "name": "\n\n🕙  **CURRENT BLOCK TIMESTAMP** \n\n\n",
+        "value": f"{time_stamp}\n\n",
+        "inline": False
+    })
+        
+    return {
+        "title": title,
+        "description": "",
+        "color": 642600 if "COLDKEY" in title else 342600,  # Different colors for different reports
+        "fields": fields,
+    }
+
 def get_validator_name(coldkey):
     """
     Retrieves the name of a validator based on their hotkey.
@@ -203,6 +228,21 @@ def process_vote(extrinsic):
             index = arg['value']
 
     return hotkey, proposal, approve, index
+
+def check_events(events, swap_event, dissolve_event):
+    """
+    Checks for specific events in the list of events.
+    """
+    swap_coldkey_idx, dissolve_network_idx = None, None
+    for idx, event in enumerate(events):
+        event_value = getattr(event, 'value', None)
+        if event_value and event_value.get('event_id') == swap_event:
+            swap_coldkey_idx = idx
+            
+        elif event_value and event_value.get('event_id') == dissolve_event:
+            dissolve_network_idx = event_value.get('attributes')
+
+    return swap_coldkey_idx, dissolve_network_idx
 
 def find_dissolve_subnet( block, events):
     """
@@ -235,9 +275,10 @@ def observer_block():
     """
     substrate = setup_substrate_interface()
     current_block_number = bt.subtensor().get_current_block()
-    # current_block_number = 3941423  # Example block number
-    # current_block_number = 3877258
-    current_block_number = 3956804
+    # current_block_number = 3941423  # schdule swap coldkey
+    # current_block_number = 3877258  # schedule dissolve network
+    # current_block_number = 3956804   # vote
+    current_block_number = 3913258  # dissolved network
     block, events = get_block_data(substrate, current_block_number)
     schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report = None, None, None
     
@@ -287,6 +328,14 @@ def observer_block():
         vote_report = generate_vote_report("🌟 __ NEW VOTE DETECTED __ 🌟", extrinsic_success, details, time_stamp)
         
 
-    swap_coldkey_idx, dissolve_network_idx = check_events(events, 'NetworkRemoved', 'ColdkeySwapped')
+    swap_coldkey_idx, dissolve_network_idx = check_events(events, 'ColdkeySwapped', 'NetworkRemoved')
+    
+    if dissolve_network_idx:
+        time_stamp = extract_block_timestamp(block['extrinsics'])
+        details = {
+            "current_block_number": current_block_number,
+            "netuid": dissolve_network_idx,
+        }
+        dissloved_subnet_resport = generate_dissolved_netword("🌟 __ NEWWORK DESSOLVED __ 🌟", details, time_stamp)
 
-    return schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report
+    return schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report, dissloved_subnet_resport

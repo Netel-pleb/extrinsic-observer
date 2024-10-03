@@ -18,10 +18,11 @@ def run():
     COLDKEY_SWAP_DISCORD_WEBHOOK_URL = os.getenv('COLDKEY_SWAP_DISCORD_WEBHOOK_URL')
     DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL = os.getenv('DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL')
 
-    report_swap_coldkey, report_dissolve_network, report_vote = observer_block()
+    report_swap_coldkey, report_dissolve_network, report_vote, dissloved_subnet_resport = observer_block()
     # print(report_swap_coldkey)
     post_to_discord(report_swap_coldkey, COLDKEY_SWAP_DISCORD_WEBHOOK_URL)
     post_to_discord(report_dissolve_network, DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL)
+    post_to_discord(dissloved_subnet_resport, DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL)
     post_to_discord(report_vote, COLDKEY_SWAP_DISCORD_WEBHOOK_URL)
     end_time = time.time()
     print(f"End time: {datetime.fromtimestamp(end_time).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
