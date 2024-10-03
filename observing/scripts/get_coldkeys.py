@@ -70,7 +70,7 @@ def find_owner_coldkey():
     db_path = '../../DB/db.sqlite3'
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-
+    current_time = time.time()
     cursor.execute('DROP TABLE IF EXISTS owners')
 
     cursor.execute('''
@@ -88,6 +88,8 @@ def find_owner_coldkey():
         ''', (net_uid, owner_coldkey))
     conn.commit()
     conn.close()
+    elapsed_time = time.time() - current_time
+    print(f"Elapsed time: {elapsed_time} seconds")    
 
     print("Owner coldkey data has been saved to the database.")
 
@@ -122,6 +124,7 @@ def find_validator_coldkey():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
+    current_time = time.time()
     cursor.execute('DROP TABLE IF EXISTS validators')
 
     cursor.execute('''
@@ -145,6 +148,8 @@ def find_validator_coldkey():
             print(f"Error inserting data: {e}")
     conn.commit()
     conn.close()
+    elapsed_time = time.time() - current_time
+    print(f"Elapsed time: {elapsed_time} seconds")
     print("Validator coldkey data has been saved to the database.")
 
 

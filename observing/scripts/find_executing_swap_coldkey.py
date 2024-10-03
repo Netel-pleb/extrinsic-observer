@@ -58,6 +58,7 @@ def check_dissolve_subnet(events):
         event_value = getattr(event, 'value', None)
         if event_value and event_value['event_id'] == 'ColdkeySwapped':
             point = True
+            print(event)
     return point
 
 def check_success(events, idx):
@@ -70,6 +71,7 @@ def check_success(events, idx):
             extrinsic_events.append(event)
             if event_value['event_id'] == 'ExtrinsicSuccess':
                 extrinsic_success = True
+                print(event)
     return extrinsic_events, extrinsic_success
 
 def report_dissolve_subnet(current_block_number, time_stamp):
@@ -117,7 +119,7 @@ def dissolve_subnet(substrate, block_number):
 def observer_block():
     DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/1290411821072781372/fLDmDgtz-10ucE5oCBGm4kMj7RFBwXaq2u-7KG9A4p5573kJOlyb97SxXg6DKBP1PtMO"
     substrate = setup_substrate_interface()
-    current_block_number = 3959265
+    current_block_number = 3948498
     while True:
         print(current_block_number)
         has_dissolve_subnet_idx, time_stamp = dissolve_subnet(substrate, current_block_number)
@@ -126,6 +128,7 @@ def observer_block():
             dissolve_subnet_report = report_dissolve_subnet(current_block_number, time_stamp)
             post_to_discord(dissolve_subnet_report, DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL)
         current_block_number -= 1
+        break
 
 if __name__ == "__main__":
     observer_block()
