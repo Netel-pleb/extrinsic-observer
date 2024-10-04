@@ -1,40 +1,84 @@
-# import subprocess
-# import time
-# import sched
-
-# def run_bot(scheduler, interval):
-#     """Runs a specified script and reschedules itself to run again after the interval."""
-#     start_time = time.time()
-#     subprocess.run(['python', 'run.py'])  # Replace 'run.py' with the actual filename if different
-#     end_time = time.time()
-#     elapsed_time = end_time - start_time
-#     next_run = max(0, interval - elapsed_time)
-#     scheduler.enter(next_run, 1, run_bot, (scheduler, interval))
-
-# if __name__ == "__main__":
-#     interval = 12  # Interval in seconds
-#     scheduler = sched.scheduler(time.time, time.sleep)
-#     scheduler.enter(0, 1, run_bot, (scheduler, interval))
-#     scheduler.run()
-
-
 import subprocess
 import time
 import sched
 import threading
+from observing.utils.get_coldkeys import find_owner_coldkey, find_validator_coldkey
+import os
+import sentry_sdk
+from dotnev import load_dotenv
+
+# Initialize Sentry
+def init_sentry(): 
+    
+    load_dotenv()
+    SENTRY_DSN = os.getenv('SENTRY_DSN')
+    
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,  # Replace with your actual Sentry DSN
+        traces_sample_rate=1.0
+    )
 
 def run_bot():
     """Runs a specified script."""
-    subprocess.run(['python', 'run.py'])  # Replace 'run.py' with the actual filename if different
+    try:
+        subprocess.run(['python', 'run.py'])  # Replace 'run.py' with the actual filename if different
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        print(f"Exception in run_bot (main.py): {e}")
 
 def schedule_bot(scheduler, interval):
     """Schedules the bot to run at regular intervals."""
-    threading.Thread(target=run_bot).start()
-    scheduler.enter(interval, 1, schedule_bot, (scheduler, interval))
+    try:
+        threading.Thread(target=run_bot).start()
+        scheduler.enter(interval, 1, schedule_bot, (scheduler, interval))
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        print(f"Exception in schedule_bot (main.py): {e}")
+
+def update_coldkeys():
+    """Runs find_validator_coldkey and find_owner_coldkey in sequence."""
+    try:
+        find_validator_coldkey()
+        status = check_thread_status()
+        if status == 'not running':
+            find_owner_coldkey()
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        print(f"Exception in update_coldkeys (main.py): {e}")
+
+def schedule_update_dataset(scheduler, interval):
+    """Schedules the dataset to update at regular intervals."""
+    try:
+        threading.Thread(target=update_coldkeys).start()
+        scheduler.enter(interval, 1, schedule_update_dataset, (scheduler, interval))
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        print(f"Exception in schedule_update_dataset (main.py): {e}")
+
+def check_thread_status():
+    try:
+        with open('thread_status.txt', 'r') as f:
+            status = f.read().strip()
+            return status
+    except FileNotFoundError:
+        return 'not running'
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        print(f"Exception in check_thread_status (main.py): {e}")
+        return 'not running'
 
 if __name__ == "__main__":
-    interval = 12  # Interval in seconds
-    scheduler = sched.scheduler(time.time, time.sleep)
-    scheduler.enter(0, 1, schedule_bot, (scheduler, interval))
-    scheduler.run()
+    
+    init_sentry()
+    
+    try:
+        bot_interval = 12  # Interval in seconds for running the bot
+        update_dataset_interval = 86400  # Interval in seconds for updating the dataset (1 day)
 
+        scheduler = sched.scheduler(time.time, time.sleep)
+        scheduler.enter(0, 1, schedule_bot, (scheduler, bot_interval))
+        scheduler.enter(0, 1, schedule_update_dataset, (scheduler, update_dataset_interval))
+        scheduler.run()
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        print(f"Exception in main (main.py): {e}")
