@@ -11,6 +11,7 @@ import os
 def init_sentry(): 
     
     load_dotenv()
+    
     SENTRY_DSN = os.getenv('SENTRY_DSN')
     
     sentry_sdk.init(
@@ -358,7 +359,7 @@ def get_owner_name(coldkey):
         if conn:
             conn.close()
 
-def update_block_number(current_block_number):   
+def check_update_block_number(current_block_number):   
     db_path = 'DB/db.sqlite3'
     try:
         with sqlite3.connect(db_path) as conn:
@@ -401,9 +402,31 @@ def update_block_number(current_block_number):
             ''', (current_block_number,))
             
             conn.commit()
-    except (sqlite3.Error, ValueError) as e:
+    except ValueError as ve:
+        sentry_sdk.capture_exception(ve)
+        print(f"ValueError in check_update_block_number (observing/observer/observer.py): {ve}")
+        # Continue to update the block number in the database
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('DROP TABLE IF EXISTS current_block_number')
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS current_block_number (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    current_block_number TEXT
+                )
+                ''')
+                cursor.execute('''
+                INSERT INTO current_block_number (current_block_number)
+                VALUES (?)
+                ''', (current_block_number,))
+                conn.commit()
+        except sqlite3.Error as e:
+            sentry_sdk.capture_exception(e)
+            print(f"Error in updating block number after ValueError (observing/observer/observer.py): {e}")
+    except sqlite3.Error as e:
         sentry_sdk.capture_exception(e)
-        print(f"Error in update_block_number (observing/observer/observer.py): {e}")
+        print(f"Error in check_update_block_number (observing/observer/observer.py): {e}")
 
 def update_validator_coldkey(old_coldkey, new_coldkey):
     """
@@ -545,7 +568,7 @@ def observer_block():
         substrate = setup_substrate_interface()
         current_block_number = bt.subtensor().get_current_block()
         
-        update_block_number(current_block_number)
+        check_update_block_number(current_block_number)
         
         #block numbers for testing
         # current_block_number = 3941423  # schdule swap coldkey
@@ -558,9 +581,9 @@ def observer_block():
         schedule_swap_coldkey_report, schedule_dissolve_subnet_report, vote_report, dissloved_subnet_resport, swapped_coldkey_report = None, None, None, None, None
         should_update_owner_table = False
         
-        # Check for extrinsics related to scheduled coldkey swap and network dissolve
+        # Check for extrinsics related to scheduled coldkey swap and schedule network dissolve
         schedule_swap_coldkey_idx, schedule_dissolve_network_idx, vote_idx = check_extrinsic(block['extrinsics'], 'schedule_swap_coldkey', 'schedule_dissolve_network', 'vote', 'SubtensorModule')
-        # Check for events related to coldkey swap and network dissolve
+        # Check for events related to coldkey swapped and network dissolved
         swapped_old_coldkey, swapped_new_coldkey, dissolved_network_uid = check_events(events, 'ColdkeySwapped', 'NetworkRemoved')
         
         
@@ -569,7 +592,7 @@ def observer_block():
             time_stamp = extract_block_timestamp(block['extrinsics'])
             extrinsic_events, extrinsic_success = check_success(events, schedule_swap_coldkey_idx)
             old_coldkey, new_coldkey, execution_block = process_swap_extrinsics(extrinsic_events) if extrinsic_success else (None, None, None)
-            old_coldkey = "5Cyfk5Jjee6uCafjZyUUjtKd7Q4qh1yJ48Ts7bkT9xXaDqe1"
+            old_coldkey = "5Cyfk5Jjee6uCafjZyUUjtKd7Q4qh1yJ48Ts7bkT9xXaDqe1" #test for schedule validator coldkey swap
             validator_name, validator_hotkey, check_validator = get_validator_name(old_coldkey)
             link = f"https://taostats.io/validators/{validator_hotkey}"
             original_coldkey = old_coldkey
@@ -607,12 +630,13 @@ def observer_block():
             }
             schedule_dissolve_subnet_report = generate_report("⏳ __SCHEDULE_NETWORK_DISSOLVE DETECTED__ ⏳", extrinsic_success, details, time_stamp)
 
+
         # Check for vote
         if vote_idx >= 0:
             time_stamp = extract_block_timestamp(block['extrinsics'])
             extrinsic_events, extrinsic_success = check_success(events, vote_idx)
             hotkey, proposal, approve, index = process_vote(block['extrinsics'][vote_idx])
-            hotkey = "5HNQURvmjjYhTSksi8Wfsw676b4owGwfLR2BFAQzG7H3HhYf"
+            # hotkey = "5HNQURvmjjYhTSksi8Wfsw676b4owGwfLR2BFAQzG7H3HhYf" #test for validator vote
             validator_name, validator_coldkey, check_validator = get_validator_name(None, hotkey)
             link = f"https://taostats.io/validators/{hotkey}"
             if check_validator:
@@ -632,8 +656,7 @@ def observer_block():
         
         # Check for coldkey swapped
         if swapped_old_coldkey:
-            
-            swapped_old_coldkey = "5Cyfk5Jjee6uCafjZyUUjtKd7Q4qh1yJ48Ts7bkT9xXaDqe1"
+            swapped_old_coldkey = "5Cyfk5Jjee6uCafjZyUUjtKd7Q4qh1yJ48Ts7bkT9xXaDqe1" #test for validator coldkey swapped
             time_stamp = extract_block_timestamp(block['extrinsics'])
             validator_name, validator_hotkey, check_validator = get_validator_name(swapped_old_coldkey)
             link = f"https://taostats.io/validators/{validator_hotkey}"

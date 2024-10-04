@@ -16,8 +16,7 @@ def convert_hex_to_ss58(hex_address):
 # Example usage
 hex_address = '0x64e51387c629f7852195fde79cc7c5119c7ee4bbc0da3a7f3e9ee926d6fd955f'
 ss58_address = convert_hex_to_ss58(hex_address)
-print(ss58_address)  # Expected Output: 5Ey2zNCjGLvYJygfqUjKQd3ovS46dEjmtbzRbfezmRUzXx45
-
+print(ss58_address) 
 
 
 
