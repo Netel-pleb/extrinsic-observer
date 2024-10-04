@@ -4,9 +4,9 @@ from substrateinterface.utils.ss58 import ss58_encode
 import time
 import os
 import sentry_sdk
-from dotnev import load_dotenv
-
+from dotenv import load_dotenv
 # Initialize Sentry
+
 def init_sentry(): 
     
     load_dotenv()
@@ -78,7 +78,7 @@ def find_owner_coldkey():
     
     init_sentry()
     load_dotenv()
-    TAOSTATS_API_KEY = os.getent('TAOSTATS_API_KEY')
+    TAOSTATS_API_KEY = os.getenv('TAOSTATS_API_KEY')
     
     try:
         url = "https://api.taostats.io/api/v1/subnet/owner?latest=true"
@@ -203,7 +203,7 @@ def get_validator_name(hotkey, TAOSTATS_API_KEY):
         if response.status_code == 429:  # Rate limit error
             print("Rate limit exceeded. Retrying...")
             time.sleep(10)  # Wait for 10 seconds before retrying
-            return get_validator_name(hotkey)  # Retry the request
+            return get_validator_name(hotkey, TAOSTATS_API_KEY)  # Retry the request
         
         response = response.json()
         if response["count"] == 1:

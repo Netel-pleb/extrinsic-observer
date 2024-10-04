@@ -12,7 +12,7 @@ from observing.observer.observer import observer_block
 from observing.utils.get_coldkeys import find_owner_coldkey
 import os
 import sentry_sdk
-from dotnev import load_dotenv
+from dotenv import load_dotenv
 
 # Initialize Sentry
 def init_sentry(): 
@@ -56,6 +56,7 @@ def run():
 
         # Run the get_coldkey.py script in a new thread if the owner database should be updated.
         if should_update_owner_table:
+            print("**********/n/n/n/n**********")
             if update_owner_thread is None or not update_owner_thread.is_alive():
                 update_owner_thread = threading.Thread(target=run_update_owner_coldkey_function)
                 update_owner_thread.start()

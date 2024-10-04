@@ -127,7 +127,7 @@ def dissolve_subnet(substrate, block_number):
 def observer_block():
     DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/1290411821072781372/fLDmDgtz-10ucE5oCBGm4kMj7RFBwXaq2u-7KG9A4p5573kJOlyb97SxXg6DKBP1PtMO"
     substrate = setup_substrate_interface()
-    block_number = 3956804
+    block_number = 3
     time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print("start time", time)
     # block_number = bt.subtensor().get_current_block()

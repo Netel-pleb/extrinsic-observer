@@ -5,7 +5,7 @@ import threading
 from observing.utils.get_coldkeys import find_owner_coldkey, find_validator_coldkey
 import os
 import sentry_sdk
-from dotnev import load_dotenv
+from dotenv import load_dotenv
 
 # Initialize Sentry
 def init_sentry(): 
@@ -38,10 +38,10 @@ def schedule_bot(scheduler, interval):
 def update_coldkeys():
     """Runs find_validator_coldkey and find_owner_coldkey in sequence."""
     try:
-        find_validator_coldkey()
         status = check_thread_status()
         if status == 'not running':
             find_owner_coldkey()
+        find_validator_coldkey()
     except Exception as e:
         sentry_sdk.capture_exception(e)
         print(f"Exception in update_coldkeys (main.py): {e}")
@@ -61,6 +61,7 @@ def check_thread_status():
             status = f.read().strip()
             return status
     except FileNotFoundError:
+        print("File not found")
         return 'not running'
     except Exception as e:
         sentry_sdk.capture_exception(e)
