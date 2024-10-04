@@ -1,3 +1,4 @@
+# Description: Main script for running the bot and updating the dataset at regular intervals.
 import subprocess
 import time
 import sched
@@ -9,7 +10,6 @@ from dotenv import load_dotenv
 
 # Initialize Sentry
 def init_sentry(): 
-    
     load_dotenv()
     SENTRY_DSN = os.getenv('SENTRY_DSN')
     
@@ -57,11 +57,10 @@ def schedule_update_dataset(scheduler, interval):
 
 def check_thread_status():
     try:
-        with open('thread_status.txt', 'r') as f:
+        with open('thread_status.status', 'r') as f:
             status = f.read().strip()
             return status
     except FileNotFoundError:
-        print("File not found")
         return 'not running'
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -69,16 +68,16 @@ def check_thread_status():
         return 'not running'
 
 if __name__ == "__main__":
-    
     init_sentry()
     
     try:
         bot_interval = 12  # Interval in seconds for running the bot
         update_dataset_interval = 86400  # Interval in seconds for updating the dataset (1 day)
+        initial_delay = 86400  # Delay in seconds before starting the dataset update (1 hour)
 
         scheduler = sched.scheduler(time.time, time.sleep)
         scheduler.enter(0, 1, schedule_bot, (scheduler, bot_interval))
-        scheduler.enter(0, 1, schedule_update_dataset, (scheduler, update_dataset_interval))
+        scheduler.enter(initial_delay, 1, schedule_update_dataset, (scheduler, update_dataset_interval))
         scheduler.run()
     except Exception as e:
         sentry_sdk.capture_exception(e)

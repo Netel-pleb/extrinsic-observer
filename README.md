@@ -24,14 +24,23 @@ This project is designed to observe and report on specific events and transactio
 7. **Discord Integration**: Sends reports to Discord channels using webhooks.
 8. **Data Collection**: Fetches owner and validator data from TaoStats API and stores it in the SQLite database.
 
-## Environment Setup
+## Running bot
+
+### Make sure dataset is prepared
+
+For running bot correctly, you have to make sure the `db.sqlite3` file is prepared in DB directory.
+if nothing, you should copy it from `observing/scripts/db(original).sqlite3`, then rename it
+
+### Environment Setup
 
 Before running the script, you need to set up the following environment variables:
 
 ```
 COLDKEY_SWAP_DISCORD_WEBHOOK_URL=""
 DISSOLVE_NETWORK_DISCORD_WEBHOOK_URL=""
-TAOSTATS_API_KEY=""
+TAOSTATS_API_KEY = ""
+SENTRY_DSN = ""
+SUBTENSOR_ENDPOINT = "wss://archive.chain.opentensor.ai:443/"
 ```
 
 These environment variables are used for:
@@ -86,16 +95,27 @@ To use this script:
 3. Run the script to populate the SQLite database with owner and validator information.
 4. Once the database is populated, the `observer_block()` function can be used to start monitoring the Bittensor network for events.
 
-## Dependencies
+## Scheduler Overview in `main.py`
 
-- pytz
-- datetime
-- substrateinterface
-- bittensor
-- sqlite3
-- requests
-- os
-- time
+This script utilizes a scheduling mechanism to run the bot and update the dataset at specified intervals. Below are the key components of the scheduling system:
+
+### Bot Scheduling
+
+- **Function:** `schedule_bot(scheduler, interval)`
+- **Purpose:** Runs the bot script (`run.py`) at regular intervals.
+- **Interval:** Set to 12 seconds by default.
+- **Implementation:** 
+  - A new thread is created to run the bot using the `run_bot()` function.
+  - The scheduler re-enters itself after the specified interval, ensuring continuous execution.
+
+### Dataset Update Scheduling
+
+- **Function:** `schedule_update_dataset(scheduler, interval)`
+- **Purpose:** Updates the dataset by running the `find_owner_coldkey()` and `find_validator_coldkey()` functions sequentially.
+- **Interval:** Set to 86400 seconds (1 day) by default, with an initial delay of 86400 seconds (1 day) before the first update.
+- **Implementation:**
+  - A new thread is created to execute the `update_coldkeys()` function.
+  - The scheduler re-enters itself after the specified interval, ensuring the dataset is updated regularly.
 
 ## Note
 

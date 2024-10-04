@@ -10,6 +10,7 @@ from datetime import datetime
 from observing.bot.bot import post_to_discord
 from observing.observer.observer import observer_block
 from observing.utils.get_coldkeys import find_owner_coldkey
+from main import check_thread_status
 import os
 import sentry_sdk
 from dotenv import load_dotenv
@@ -29,11 +30,11 @@ def run_update_owner_coldkey_function():
     """Runs the find_owner_coldkey function in a new thread."""
     try:
         # Update the status to running
-        with open('thread_status.txt', 'w') as f:
+        with open('thread_status.status', 'w') as f:
             f.write('running')
         find_owner_coldkey()
         # Update the status to not running
-        with open('thread_status.txt', 'w') as f:
+        with open('thread_status.status', 'w') as f:
             f.write('not running')
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -56,8 +57,8 @@ def run():
 
         # Run the get_coldkey.py script in a new thread if the owner database should be updated.
         if should_update_owner_table:
-            print("**********/n/n/n/n**********")
-            if update_owner_thread is None or not update_owner_thread.is_alive():
+            thread_status = check_thread_status()
+            if thread_status == 'not running':
                 update_owner_thread = threading.Thread(target=run_update_owner_coldkey_function)
                 update_owner_thread.start()
             else:

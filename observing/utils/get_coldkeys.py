@@ -153,7 +153,7 @@ def find_validator_coldkey():
                 validator_coldkeys.append(validator['cold_key']['ss58'])
                 validator_hotkeys.append(validator['hot_key']['ss58'])
                 name = get_validator_name(validator['hot_key']['ss58'], TAOSTATS_API_KEY)
-                print(name)
+                # print(name)
                 get_validator_names.append(name)
                 validator_amounts.append(amount)
 
@@ -172,6 +172,7 @@ def find_validator_coldkey():
             name TEXT
         )
         ''')
+        print("validator dataset is updated")
         print((validator_coldkeys, validator_hotkeys, validator_amounts, get_validator_names))
         for cold_key, hot_key, amount, name in zip(validator_coldkeys, validator_hotkeys, validator_amounts, get_validator_names):
             try:
@@ -199,9 +200,9 @@ def get_validator_name(hotkey, TAOSTATS_API_KEY):
         }
 
         response = requests.get(url, headers=headers)
-        print(response.status_code)
+        # print(response.status_code)
         if response.status_code == 429:  # Rate limit error
-            print("Rate limit exceeded. Retrying...")
+            # print("Rate limit exceeded. Retrying...")
             time.sleep(10)  # Wait for 10 seconds before retrying
             return get_validator_name(hotkey, TAOSTATS_API_KEY)  # Retry the request
         
